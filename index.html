@@ -1,14 +1,15 @@
 <!DOCTYPE html>
 <html>
+
 <head>
 
   <title>Sports Analaysis</title>
 
   <style>
-      rect.bordered {
-	stroke: #E6E6E6;
-	stroke-width:2px;
-      }
+    rect.bordered {
+      stroke: #E6E6E6;
+      stroke-width: 2px;
+    }
   </style>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.18.1/moment.min.js" charset="utf-8"></script>
@@ -19,14 +20,14 @@
 
 <body>
 
-<div id="chart"></div>
+  <div id="chart"></div>
 
-<script>
-(function () {
+  <script>
+    (function () {
 
-  var now = moment().endOf('day').toDate();
+      var now = moment().endOf('day').toDate();
 
-  var csv_info = `%s`;
+      var csv_info = `%s`;
 
       var data = [];
 
@@ -36,173 +37,174 @@
 
       var csvData = d3.csvParseRows(csv_info)
 
-	.reverse()
+        .reverse()
 
-	.forEach(function(row) {
+        .forEach(function (row) {
 
-	  // Makes algorithm O(n^2)
-	  // var sameDay = data.filter(entry => entry.date.isSame(moment(row[0]), 'day'));
+          // Makes algorithm O(n^2)
+          // var sameDay = data.filter(entry => entry.date.isSame(moment(row[0]), 'day'));
 
-	  var rowDate = moment(row[0]);
+          var rowDate = moment(row[0]);
 
-	  if(!currentDay.isSame(rowDate, 'day')){
+          if (!currentDay.isSame(rowDate, 'day')) {
 
-	    currentDay = rowDate;
+            currentDay = rowDate;
 
-	    numDay = 0;
+            numDay = 0;
 
-	  }else{
+          } else {
 
-	    numDay = numDay + 1;
+            numDay = numDay + 1;
 
-	  }
+          }
 
-	  data.push({
-	    date: rowDate,
-	    ex: row[1],
-	    t: +row[2],
-	    order: numDay
-	  });
-	});
+          data.push({
+            date: rowDate,
+            ex: row[1],
+            t: +row[2],
+            order: numDay
+          });
+        });
 
       var graphMargin = 20;
 
       console.log(data);
 
       data = data
-	.sort(function(a, b){return a.date.unix()-b.date.unix()});
+        .sort(function (a, b) { return a.date.unix() - b.date.unix() });
 
       dataCorrer = data
-	.filter(el => el.ex == 'Correr (min)');
+        .filter(el => el.ex == 'Correr (min)');
 
       dataBici = data
-	.filter(el => el.ex == 'Bici (min)');
+        .filter(el => el.ex == 'Bici (min)');
 
       var buckets = 9,
-	    colors = ["#ffffd9","#edf8b1","#c7e9b4","#7fcdbb","#41b6c4","#1d91c0","#225ea8","#253494","#081d58"];
+        colors = ["#ffffd9", "#edf8b1", "#c7e9b4", "#7fcdbb", "#41b6c4", "#1d91c0", "#225ea8", "#253494", "#081d58"];
 
       var colorScale = d3.scaleQuantile()
-		.domain([d3.min(dataCorrer, function (d) { return d.t; }), d3.max(dataCorrer, function (d) { return d.t; })])
-		.range(colors);
+        .domain([d3.min(dataCorrer, function (d) { return d.t; }), d3.max(dataCorrer, function (d) { return d.t; })])
+        .range(colors);
 
-      var lastDay = data[data.length-1].date.clone().add(1, 'month').startOf('month');
+      var lastDay = data[data.length - 1].date.clone().add(1, 'month').startOf('month');
 
       var firstDay = data[0].date.clone().startOf('month');
 
       var numberOfWeeks =
-	lastDay
-	  .diff(firstDay, 'week');
+        lastDay
+          .diff(firstDay, 'week');
 
       var cellSize = 40;
 
 
-      var width = (cellSize +4)*numberOfWeeks+2*graphMargin + 20,
-	  height = 7 *cellSize + (2* graphMargin)+ 30;
+      var width = (cellSize + 4) * numberOfWeeks + 2 * graphMargin + 20,
+        height = 7 * cellSize + (2 * graphMargin) + 30;
 
-	  var adjustDay = function(d){
-	    var day = d.getDay() - 1;
-	    if(day == -1){
-	      return 6;
-	    }else {
-	      return day;
-	    }
-	  };
+      var adjustDay = function (d) {
+        var day = d.getDay() - 1;
+        if (day == -1) {
+          return 6;
+        } else {
+          return day;
+        }
+      };
 
       var svg = d3.select("#chart")
-	.append("svg")
-	  .attr("width", width)
-	  .attr("height", height)
-	.append("g")
-	  .attr("transform", "translate(" + ((width - (cellSize + 4) * numberOfWeeks) / 2) + "," + (height - (cellSize + 4) * 7 - 1) + ")");
+        .append("svg")
+        .attr("width", width)
+        .attr("height", height)
+        .append("g")
+        .attr("transform", "translate(" + ((width - (cellSize + 4) * numberOfWeeks) / 2) + "," + (height - (cellSize + 4) * 7 - 1) + ")");
 
       var rect = svg.append("g")
-	  .attr("fill", "none")
-	  .attr("stroke", "#ccc")
-	.selectAll("rect")
-	  .data(function(d) { return d3.timeDays(firstDay.toDate(), lastDay.toDate()); })
-	.enter()
-	.append("g")
-	  .append("rect")
-	   .attr("width", cellSize)
-	   .attr("height", cellSize)
-	   .attr("rx", 4)
-	   .attr("ry", 4)
-	   .attr("class", "hour bordered")
-	   .attr("x", function(d) { return d3.timeMonday.count(firstDay.toDate(), d) * cellSize + graphMargin; })
-	   .attr("y", function(d) { return adjustDay(d) * cellSize + graphMargin; })
-	   .attr("data-date", function(d){return moment(d).format("DD/MM/YYYY");});
+        .attr("fill", "none")
+        .attr("stroke", "#ccc")
+        .selectAll("rect")
+        .data(function (d) { return d3.timeDays(firstDay.toDate(), lastDay.toDate()); })
+        .enter()
+        .append("g")
+        .append("rect")
+        .attr("width", cellSize)
+        .attr("height", cellSize)
+        .attr("rx", 4)
+        .attr("ry", 4)
+        .attr("class", "hour bordered")
+        .attr("x", function (d) { return d3.timeMonday.count(firstDay.toDate(), d) * cellSize + graphMargin; })
+        .attr("y", function (d) { return adjustDay(d) * cellSize + graphMargin; })
+        .attr("data-date", function (d) { return moment(d).format("DD/MM/YYYY"); });
 
-	  // Es esto lo mejor para transformar los datos y aplicar el color?
-	  var data2 = d3.nest()
-	    .key(function(d) { return d.date.toDate(); })
-	    .object(dataCorrer);
+      // Es esto lo mejor para transformar los datos y aplicar el color?
+      var data2 = d3.nest()
+        .key(function (d) { return d.date.toDate(); })
+        .object(dataCorrer);
 
-	  rect.filter(function(d) { return d in data2; })
-	  //.transition().duration(2000); // Este no funciona?
-	    .style("fill", function(d) { return colorScale(data2[d][0].t); });
+      rect.filter(function (d) { return d in data2; })
+        //.transition().duration(2000); // Este no funciona?
+        .style("fill", function (d) { return colorScale(data2[d][0].t); });
 
-	  data2 = d3.nest()
-	    .key(function(d) { return d.date.toDate(); })
-	    .object(dataBici);
+      data2 = d3.nest()
+        .key(function (d) { return d.date.toDate(); })
+        .object(dataBici);
 
-	  rect.filter(function(d) { return d in data2; })
-	  //.transition().duration(2000); // Este no funciona?
-	    .style("fill", function(d) { return "green"; })
-	  .insert("text", this.parentNode)
-	  .text("B")
-	  .attr("x", 0)
-	  .attr("y",10)
-	  .attr("fill","white");
+      rect.filter(function (d) { return d in data2; })
+        //.transition().duration(2000); // Este no funciona?
+        .style("fill", function (d) { return "green"; })
+        .insert("text", this.parentNode)
+        .text("B")
+        .attr("x", 0)
+        .attr("y", 10)
+        .attr("fill", "white");
 
 
       var pathMonth = function (t0) {
-	var t1 = moment(t0).endOf('month').toDate(),
-	    d0 = adjustDay(t0), w0 = d3.timeMonday.count(firstDay.toDate(), t0),
-	    d1 = adjustDay(t1), w1 = d3.timeMonday.count(firstDay.toDate(), t1);
-	return "M" + ((w0 + 1) * cellSize + graphMargin) + "," + (d0 * cellSize + graphMargin)
-	    + "H" + (w0 * cellSize + graphMargin) + "V" + (7 * cellSize + graphMargin)
-	    + "H" + (w1 * cellSize + graphMargin) + "V" + ((d1 + 1) * cellSize + graphMargin)
-	    + "H" + ((w1 + 1) * cellSize + graphMargin)+ "V" + (0 + graphMargin)
-	    + "H" + ((w0 + 1) * cellSize + graphMargin) + "Z";
+        var t1 = moment(t0).endOf('month').toDate(),
+          d0 = adjustDay(t0), w0 = d3.timeMonday.count(firstDay.toDate(), t0),
+          d1 = adjustDay(t1), w1 = d3.timeMonday.count(firstDay.toDate(), t1);
+        return "M" + ((w0 + 1) * cellSize + graphMargin) + "," + (d0 * cellSize + graphMargin)
+          + "H" + (w0 * cellSize + graphMargin) + "V" + (7 * cellSize + graphMargin)
+          + "H" + (w1 * cellSize + graphMargin) + "V" + ((d1 + 1) * cellSize + graphMargin)
+          + "H" + ((w1 + 1) * cellSize + graphMargin) + "V" + (0 + graphMargin)
+          + "H" + ((w0 + 1) * cellSize + graphMargin) + "Z";
       }
 
 
       svg.append("g")
-	  .attr("fill", "none")
-	  .attr("stroke", "#000")
-	.selectAll("path")
-	.data(function(d) { return d3.timeMonths(firstDay.toDate(), lastDay.toDate()); })
-	.enter().append("path")
-	  .attr("d", pathMonth);
+        .attr("fill", "none")
+        .attr("stroke", "#000")
+        .selectAll("path")
+        .data(function (d) { return d3.timeMonths(firstDay.toDate(), lastDay.toDate()); })
+        .enter().append("path")
+        .attr("d", pathMonth);
 
       var dayLabels = svg.append("g").selectAll(".dayLabel")
-		.data(["Lun", "Mar", "Mie", "Jue", "Vie", "Sab", "Dom"])
-		.enter().append("text")
-		  .text(function (d) { return d; })
-		  .attr("x", graphMargin)
-		  .attr("y", function (d, i) { return i * cellSize + graphMargin; })
-		  .style("text-anchor", "end")
-		  .attr("transform", "translate(-6," + cellSize / 1.5 + ")")
-		  .attr("class", function (d, i) { return ((i >= 0 && i <= 4) ? "dayLabel mono axis axis-workweek" : "dayLabel mono axis"); });
+        .data(["Lun", "Mar", "Mie", "Jue", "Vie", "Sab", "Dom"])
+        .enter().append("text")
+        .text(function (d) { return d; })
+        .attr("x", graphMargin)
+        .attr("y", function (d, i) { return i * cellSize + graphMargin; })
+        .style("text-anchor", "end")
+        .attr("transform", "translate(-6," + cellSize / 1.5 + ")")
+        .attr("class", function (d, i) { return ((i >= 0 && i <= 4) ? "dayLabel mono axis axis-workweek" : "dayLabel mono axis"); });
 
 
       svg.append("g")
-	.selectAll(".monthName")
-	.data(function(d) { return d3.timeMonths(firstDay.toDate(), lastDay.toDate()); })
-	.enter()
-	.append("text")
-	.text(function (d) { return moment(d).format("YYYY MMM"); })
-	.attr("x",
-	  function (d, i) {
-	    //var t1 = moment(t0).endOf('month').toDate(),
-	    var w0 = d3.timeWeek.count(firstDay.toDate(), d) + 1;
-	    return w0 * cellSize + graphMargin;
-	  })
-	.attr("y", 0);
+        .selectAll(".monthName")
+        .data(function (d) { return d3.timeMonths(firstDay.toDate(), lastDay.toDate()); })
+        .enter()
+        .append("text")
+        .text(function (d) { return moment(d).format("YYYY MMM"); })
+        .attr("x",
+          function (d, i) {
+            //var t1 = moment(t0).endOf('month').toDate(),
+            var w0 = d3.timeWeek.count(firstDay.toDate(), d) + 1;
+            return w0 * cellSize + graphMargin;
+          })
+        .attr("y", 0);
 
-})();
-</script>
+    })();
+  </script>
 
 
 </body>
+
 </html>
