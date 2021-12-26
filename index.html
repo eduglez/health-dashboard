@@ -35,7 +35,13 @@
 
       var numDay = 0;
 
-      var csvData = d3.csvParseRows(csv_info)
+      //var csvData = d3.csvParseRows(csv_info)
+
+      d3.csv("sports-log.csv")
+
+        .get(function (data) {
+          return data;
+        })
 
         .reverse()
 
